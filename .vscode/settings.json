@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "chrono": "cpp",
-        "xstring": "cpp"
+        "xstring": "cpp",
+        "cmath": "cpp"
     }
 }

@@ -1,4 +1,6 @@
 #include <bits/stdc++.h>
+#include <chrono>
+#include <math.h>
 
 using namespace std;
 
@@ -119,3 +121,50 @@ public:
     }
 
 };
+
+
+int main(int argc, char const *argv[]) {
+
+    string textFileName = argv[1];
+    string pattern = argv[2];
+    int textSize = atoi(argv[3]);
+
+    ifstream textFile("data/" + textFileName);
+    string text;
+    string str;
+
+    int count = 0;
+    while(getline(textFile, str) && text.size() < textSize){
+        text += str;
+        count++;
+    };
+
+    text = text.substr(0, textSize);
+
+    FMIndex fmIndex(text);
+
+    vector<float> times;
+
+    for(int i = 0; i < 10; i++){
+        auto start = chrono::high_resolution_clock::now();
+        int count = fmIndex.count(pattern);
+        auto end = chrono::high_resolution_clock::now();
+        auto duration = chrono::duration_cast<chrono::microseconds>(end - start);
+        times.push_back(duration.count());
+    }
+
+    float time = 0;
+    for(int i = 0; i < times.size(); i++){
+        time += times[i];
+    }
+    time /= 30;
+
+    float var = 0;
+    for(int i = 0; i < times.size(); i++){
+        var += pow(times[i] - time, 2);
+    }
+
+    cout << textSize << "," << time << "," << var << endl;
+
+    return 0;
+}
