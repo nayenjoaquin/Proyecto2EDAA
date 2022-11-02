@@ -1,35 +1,118 @@
 #include "fmIndex.cpp"
-#include "suffixArray.cpp"
 #include <bits/stdc++.h>
 #include <chrono>
 #include <math.h>
 
 using namespace std;
 
+//implementacion geeks for geeks suffix array
+// la unica diferencia en comparacion a la implemetacion hecha en geeks for geeks es que la
+//funcion search cuenta la cantidad de veces que encuentra la palabra en vez de devolver si se encuentra 
+//en el texto
 
-// int parseLine(char* line){
-//     int i = strlen(line);
-//     const char* p = line;
-//     while (*p <'0' || *p > '9') p++;
-//     line[i-3] = '\0';
-//     i = atoi(p);
-//     return i;
-// }
+//estructura de sufijo la cual almacena el indice de inicio y 
+//el sufijo contenido 
+struct suffix
+{
+    int index;
+    char *suff;
+};
+  
+// Acomparador que se ultilizara para comparar los sufijos,
+// este comparador se usa cuando debemos buscar si el sufijo esta contenido, este nos ayuda para hacer una busqueda binaria
+int cmp(struct suffix a, struct suffix b)
+{
+    return strcmp(a.suff, b.suff) < 0? 1 : 0;
+}
+  
+//con esta funcion construimos el suffix array
+int *buildSuffixArray(string texto, int n)
+{
+    char txt[texto.length()];
+    strcpy(txt, texto.c_str());
 
-// int getValue(){ 
-//     FILE* file = fopen("/proc/self/status", "r");
-//     int result = -1;
-//     char line[128];
 
-//     while (fgets(line, 128, file) != NULL){
-//         if (strncmp(line, "VmRSS:", 6) == 0){
-//             result = parseLine(line);
-//             break;
-//         }
-//     }
-//     fclose(file);
-//     return result;
-// }
+    struct suffix suffixes[n];
+  
+    //con este for llenamos el arreglo sufijos, con lo cual guardaremos todos los sufijos, 
+    //y guardamos las cadenas para porder ordenarlas en orden alfabetico
+    for (int i = 0; i < n; i++)
+    {
+        suffixes[i].index = i;
+        suffixes[i].suff = (txt+i);
+    }
+  
+    // ordenamos el arreglo
+    sort(suffixes, suffixes+n, cmp);
+  
+    // guardamos los indices del arreglo
+    int *suffixArr = new int[n];
+    for (int i = 0; i < n; i++)
+        suffixArr[i] = suffixes[i].index;
+  
+    return  suffixArr;
+}
+
+
+int countSA(string patron, string texto, int *suffArr, int n)
+{
+    char pat[patron.length()];
+    strcpy(pat, patron.c_str());
+
+    char txt[texto.length()];
+    strcpy(txt, texto.c_str());
+
+    int m = strlen(pat);
+    int rep =0 , middle, comp;
+    int l = 0, r = n-1;
+    bool found = false;
+    //con este bucle buscamos si el patron se encuentra en texto
+    //esto solo nos encuentra una de las repeticiones
+    while (l <= r)
+    {
+        
+        middle = l + (r - l)/2;
+        comp = strncmp(pat, txt+suffArr[middle], m);
+
+        if (comp == 0)
+        {
+            rep++;
+            found = true;
+            break;
+        }
+        if (comp < 0){
+            r = middle - 1;
+        }
+        else{
+        l = middle + 1;
+        }
+    }
+    //con este bucle buscamos todas las repeticiones del patron que se encuentren
+    //a la izquierda de la posicion inicial en la que lo encontramos en el arreglo de sufijos
+    int left =  middle - 1;
+    while (found)
+    {
+        if(strncmp(pat, txt+suffArr[left], m) == 0){
+            left--;
+            rep++;
+        }else{
+            break;
+        }
+    }
+    //con este bucle buscamos todas las repeticiones del patron que se encuentren
+    //a la derecha de la posicion inicial en la que lo encontramos en el arreglo de sufijos
+    int right = middle +1;
+    while (found)
+    {
+        if(strncmp(pat, txt+suffArr[right], m) == 0){
+            right++;
+            rep++;
+        }else{
+            break;
+        }
+    }
+    return rep;
+}
 
 void tableSuffixPrefix(string pattern, int* table){
 
@@ -123,7 +206,7 @@ int main(int argc, char const *argv[]) {
 
 
     FMIndex fmIndex(text);
-    SuffixArray suffixArray(text);
+    int *suffArr = buildSuffixArray((char*)text.c_str(), text.size());
 
 
     vector<float> fmIndexTimes;
@@ -141,7 +224,7 @@ int main(int argc, char const *argv[]) {
 
         // Suffix Array
         start = chrono::high_resolution_clock::now();
-        suffixArray.count(pattern, text);
+        countSA(pattern, text, suffArr, text.size());
         end = chrono::high_resolution_clock::now();
         duration = chrono::duration_cast<chrono::microseconds>(end - start);
         suffixArrayTimes.push_back(duration.count());
@@ -189,7 +272,7 @@ int main(int argc, char const *argv[]) {
 
 
     int fmIndexSize = sizeof(fmIndex);
-    int suffixArraySize = sizeof(suffixArray);
+    int suffixArraySize = sizeof(suffArr);
 
 
     cout << textSize << "," << fmIndexTime << "," << suffixArrayTime << "," << kpmTime << "," << fmIndexSize << "," << suffixArraySize << "," << fmIndexVar << "," << suffixArrayVar << "," << kpmVar << endl;
