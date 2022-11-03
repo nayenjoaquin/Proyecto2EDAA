@@ -6,131 +6,6 @@
 
 using namespace std;
 
-//funcion para obtener uso de memoria sacada de stack overflow
-int parseLine(char* line){
-    int i = strlen(line);
-    const char* p = line;
-    while (*p <'0' || *p > '9') p++;
-    line[i-3] = '\0';
-    i = atoi(p);
-    return i;
-}
-
-int getValue(){ 
-    FILE* file = fopen("/proc/self/status", "r");
-    int result = -1;
-    char line[128];
-
-    while (fgets(line, 128, file) != NULL){
-        if (strncmp(line, "VmRSS:", 6) == 0){
-            result = parseLine(line);
-            break;
-        }
-    }
-    fclose(file);
-    return result;
-}
-
-
-//implementacion geeks for geeks suffix array
-// la unica diferencia en comparacion a la implemetacion hecha en geeks for geeks es que la
-//funcion search cuenta la cantidad de veces que encuentra la palabra en vez de devolver si se encuentra 
-//en el texto
-
-//estructura de sufijo la cual almacena el indice de inicio y 
-//el sufijo contenido 
-struct suffix
-{
-    int index;
-    char *suff;
-};
-  
-// Acomparador que se ultilizara para comparar los sufijos,
-// este comparador se usa cuando debemos buscar si el sufijo esta contenido, este nos ayuda para hacer una busqueda binaria
-int cmp(struct suffix a, struct suffix b)
-{
-    return strcmp(a.suff, b.suff) < 0? 1 : 0;
-}
-  
-//con esta funcion construimos el suffix array
-int *buildSuffixArray(char *txt, const int n)
-{
-    struct suffix suffixes[n];
-  
-    //con este for llenamos el arreglo sufijos, con lo cual guardaremos todos los sufijos, 
-    //y guardamos las cadenas para porder ordenarlas en orden alfabetico
-    for (int i = 0; i < n; i++)
-    {
-        suffixes[i].index = i;
-        suffixes[i].suff = (txt+i);
-    }
-  
-    // ordenamos el arreglo
-    sort(suffixes, suffixes+n, cmp);
-  
-    // guardamos los indices del arreglo
-    int *suffixArr = new int[n];
-    for (int i = 0; i < n; i++)
-        suffixArr[i] = suffixes[i].index;
-  
-    return  suffixArr;
-}
-
-
-int countSA(char *pat, char *txt, int *suffArr, int n)
-{
-    int m = strlen(pat);
-    int rep =0 , middle, comp;
-    int l = 0, r = n-1;
-    bool found = false;
-    //con este bucle buscamos si el patron se encuentra en texto
-    //esto solo nos encuentra una de las repeticiones
-    while (l <= r)
-    {
-        
-        middle = l + (r - l)/2;
-        comp = strncmp(pat, txt+suffArr[middle], m);
-
-        if (comp == 0)
-        {
-            rep++;
-            found = true;
-            break;
-        }
-        if (comp < 0){
-            r = middle - 1;
-        }
-        else{
-        l = middle + 1;
-        }
-    }
-    //con este bucle buscamos todas las repeticiones del patron que se encuentren
-    //a la izquierda de la posicion inicial en la que lo encontramos en el arreglo de sufijos
-    int left =  middle - 1;
-    while (found)
-    {
-        if(strncmp(pat, txt+suffArr[left], m) == 0){
-            left--;
-            rep++;
-        }else{
-            break;
-        }
-    }
-    //con este bucle buscamos todas las repeticiones del patron que se encuentren
-    //a la derecha de la posicion inicial en la que lo encontramos en el arreglo de sufijos
-    int right = middle +1;
-    while (found)
-    {
-        if(strncmp(pat, txt+suffArr[right], m) == 0){
-            right++;
-            rep++;
-        }else{
-            break;
-        }
-    }
-    return rep;
-}
-
 
 void tableSuffixPrefix(string pattern, int* table){
 
@@ -203,49 +78,46 @@ int KMPcount(string text, const string pattern){
 }
 
 
+int main(int argc, char const *argv[]) {
 
-// int main(){
-//     string text;
-//     getline(cin,text);
-//     string Pat = "FL";
-    
-//     int rep = KMPcount(text,Pat);
-//     cout<< rep<< endl;
+    string textFileName = argv[1];
+    string pattern = argv[2];
+    int textSize = atoi(argv[3]);
 
+    ifstream textFile("data/" + textFileName);
+    string text;
+    string str;
 
-//     /*
-//     auto start = chrono::high_resolution_clock::now();
-//     auto end = chrono::high_resolution_clock::now();
-//     chrono::duration<double> diff = end - start;
+    int count = 0;
+    while(getline(textFile, str) && text.size() < textSize){
+        text += str;
+        count++;
+    };
 
+    text = text.substr(0, textSize);
 
-//     int *suffArr = buildSuffixArray(txt,text.length());
-//     int kb_usage = getValue();
-//     int rep;
-//     vector<double> resultSufArr;
-//     for (int i = 0; i < 30; i++)
-//     {
-//         start =chrono::high_resolution_clock::now();
-//         rep = search(pat,txt,suffArr,text.length());
-//         end = chrono::high_resolution_clock::now();
-//         diff = end-start;
-//         resultSufArr.push_back(diff.count());
+    vector<float> times;
 
-        
-//     }
-//     cout<< rep<< endl;
-//     double  promedioSufArr = 0,varianzaSufArr = 0;
+    for(int i = 0; i < 10; i++){
+        auto start = chrono::high_resolution_clock::now();
+        int count = KMPcount(text, pattern);
+        auto end = chrono::high_resolution_clock::now();
+        auto duration = chrono::duration_cast<chrono::microseconds>(end - start);
+        times.push_back(duration.count());
+    }
 
-//     //resultados Suffix array
-//     for(vector<double>::iterator it = resultSufArr.begin();it != resultSufArr.end();it++){
-//         promedioSufArr += *it;
-//     }
-//     promedioSufArr /= resultSufArr.size();
-//     for(vector<double>::iterator it = resultSufArr.begin();it != resultSufArr.end();it++){
-//         varianzaSufArr += pow((*it-promedioSufArr), 2.0); 
-//     }
-//     cout<<Pat<< ","<< promedioSufArr<< ","<< varianzaSufArr<<","<<kb_usage<< endl;
-//     */
-//     return 0;
+    float time = 0;
+    for(int i = 0; i < times.size(); i++){
+        time += times[i];
+    }
+    time /= 30;
 
-// }
+    float var = 0;
+    for(int i = 0; i < times.size(); i++){
+        var += pow(times[i] - time, 2);
+    }
+
+    cout << textSize << "," << time << "," << var << endl;
+
+    return 0;
+}
